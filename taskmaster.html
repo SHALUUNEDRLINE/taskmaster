@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskMaster</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js for pie chart -->
+    <!-- Include additional libraries here (e.g., for calendar integration) -->
+</head>
+<style>
+    body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    width: 80%;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+h1 {
+    font-size: 2rem;
+    color: #333;
+}
+
+.task-form {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+#taskInput, #taskPriority, #taskCategory, #searchTasks {
+    margin-right: 10px;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+button.edit-btn, button.delete-btn {
+    padding: 5px 10px;
+    margin-left: 5px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+button.edit-btn {
+    background-color: #ffa500;
+    color: #fff;
+}
+
+button.delete-btn {
+    background-color: #ff6347;
+    color: #fff;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+    width: 100%;
+    max-width: 600px;
+}
+
+li {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin: 10px 0;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+}
+
+.timer {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    text-align: center;
+    margin-top: 20px;
+}
+
+.pie-chart {
+    margin: 30px 0;
+    text-align: center;
+}
+
+.settings {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.settings button {
+    margin: 5px;
+}
+
+.dark-mode {
+    background-color: #333;
+    color: #f4f4f4;
+}
+</style>
+<body>
+    <div class="container">
+        <header>
+            <h1>TaskMaster</h1>
+        </header>
+        <main>
+            <section class="task-form">
+                <input type="text" id="taskInput" placeholder="Enter a new task">
+                <select id="taskPriority">
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                </select>
+                <input type="text" id="taskCategory" placeholder="Category">
+                <button id="addTaskBtn">Add Task</button>
+                <input type="text" id="searchTasks" placeholder="Search tasks">
+                <button id="filterTasks">Filter</button>
+            </section>
+            <section class="task-list">
+                <ul id="taskList"></ul>
+            </section>
+            <section class="roadmap">
+                <h2>Roadmap</h2>
+                <ul id="roadmapList"></ul>
+            </section>
+            <section class="performance-timer">
+                <h2>Performance Timer</h2>
+                <div id="timer">00:00:00</div>
+            </section>
+            <section class="subject-selection">
+                <h2>Select Subject and Start Timer</h2>
+                <select id="subjectSelect">
+                    <option value="Math">Math</option>
+                    <option value="Science">Science</option>
+                    <option value="History">History</option>
+                    <option value="English">English</option>
+                    <option value="Art">Art</option>
+                </select>
+                <button id="startTimerBtn">Start Timer</button>
+                <div id="subjectTimer">Timer not started</div>
+            </section>
+            <section class="pie-chart">
+                <h2>Subject Engagement</h2>
+                <canvas id="pieChart" width="400" height="400"></canvas>
+            </section>
+            <section class="target-tracking">
+                <h2>Monthly Targets</h2>
+                <ul id="targetList">
+                    <li>1 Month Target: <span id="oneMonthTarget">Not Set</span></li>
+                    <li>2 Month Target: <span id="twoMonthTarget">Not Set</span></li>
+                    <li>3 Month Target: <span id="threeMonthTarget">Not Set</span></li>
+                </ul>
+            </section>
+            <section class="settings">
+                <h2>Settings</h2>
+                <button id="toggleDarkMode">Toggle Dark Mode</button>
+                <button id="importTasks">Import Tasks</button>
+                <button id="exportTasks">Export Tasks</button>
+                <button id="syncCalendar">Sync with Calendar</button>
+                <button id="sendNotifications">Send Notifications</button>
+                <!-- More settings buttons as needed -->
+            </section>
+        </main>
+    </div>
+    <script src="scripts.js"></script>
+    <script>
+        
+document.addEventListener('DOMContentLoaded', function () {
+    const taskInput = document.getElementById('taskInput');
+    const taskPriority = document.getElementById('taskPriority');
+    const taskCategory = document.getElementById('taskCategory');
+    const addTaskBtn = document.getElementById('addTaskBtn');
+    const taskList = document.getElementById('taskList');
+    const searchTasks = document.getElementById('searchTasks');
+    const filterTasks = document.getElementById('filterTasks');
+    const roadmapList = document.getElementById('roadmapList');
+    const timerDisplay = document.getElementById('timer');
+    const subjectSelect = document.getElementById('subjectSelect');
+    const startTimerBtn = document.getElementById('startTimerBtn');
+    const subjectTimer = document.getElementById('subjectTimer');
+    const pieChart = document.getElementById('pieChart');
+    const oneMonthTarget = document.getElementById('oneMonthTarget');
+    const twoMonthTarget = document.getElementById('twoMonthTarget');
+    const threeMonthTarget = document.getElementById('threeMonthTarget');
+    const toggleDarkModeBtn = document.getElementById('toggleDarkMode');
+    const importTasksBtn = document.getElementById('importTasks');
+    const exportTasksBtn = document.getElementById('exportTasks');
+    const syncCalendarBtn = document.getElementById('syncCalendar');
+    const sendNotificationsBtn = document.getElementById('sendNotifications');
+
+    let taskId = 0;
+    let timers = {};
+    let subjectTimes = {
+        'Math': 0,
+        'Science': 0,
+        'History': 0,
+        'English': 0,
+        'Art': 0
+    };
+    let monthlyTargets = {
+        '1': 0,
+        '2': 0,
+        '3': 0
+    };
+    let tasks = [];
+    let darkMode = false;
+
+    // Initialize Pie Chart
+    const ctx = pieChart.getContext('2d');
+    const pieChartInstance = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(subjectTimes),
+            datasets: [{
+                label: 'Subject Engagement',
+                data: Object.values(subjectTimes),
+                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF']
+            }]
+        },
+        options: {
+            responsive: true
+        }
+    });
+
+    addTaskBtn.addEventListener('click', function () {
+        addTask();
+    });
+
+    searchTasks.addEventListener('input', function () {
+        const query = searchTasks.value.toLowerCase();
+        Array.from(taskList.children).forEach(taskItem => {
+            const text = taskItem.querySelector('span').textContent.toLowerCase();
+            taskItem.style.display = text.includes(query) ? '' : 'none';
+        });
+    });
+
+    filterTasks.addEventListener('click', function () {
+        // Implement filtering logic based on priority or category
+    });
+
+    function addTask() {
+        const taskText = taskInput.value.trim();
+        const priority = taskPriority.value;
+        const category = taskCategory.value;
+
+        if (taskText === '') return;
+
+        taskId++;
+        const task = {
+            id: taskId,
+            text: taskText,
+            priority: priority,
+            category: category,
+            createdAt: new
+
+ Date()
+        };
+        tasks.push(task);
+
+        const taskItem = document.createElement('li');
+        taskItem.setAttribute('data-id', taskId);
+        taskItem.innerHTML = `
+            <span>${taskText}</span>
+            <span>Priority: ${priority}</span>
+            <span>Category: ${category}</span>
+            <div>
+                <button class="edit-btn">Edit</button>
+                <button class="delete-btn">Delete</button>
+            </div>
+        `;
+
+        const editBtn = taskItem.querySelector('.edit-btn');
+        const deleteBtn = taskItem.querySelector('.delete-btn');
+
+        editBtn.addEventListener('click', function () {
+            editTask(taskItem);
+        });
+
+        deleteBtn.addEventListener('click', function () {
+            deleteTask(taskItem);
+        });
+
+        taskList.appendChild(taskItem);
+        updatePieChart();
+    }
+
+    function editTask(taskItem) {
+        const id = taskItem.getAttribute('data-id');
+        const task = tasks.find(t => t.id == id);
+        const newText = prompt('Edit your task:', task.text);
+        if (newText !== null && newText.trim() !== '') {
+            task.text = newText.trim();
+            taskItem.querySelector('span').textContent = newText.trim();
+        }
+    }
+
+    function deleteTask(taskItem) {
+        const id = taskItem.getAttribute('data-id');
+        tasks = tasks.filter(t => t.id != id);
+        taskItem.remove();
+        updatePieChart();
+    }
+
+    function updatePieChart() {
+        const categories = tasks.map(t => t.category);
+        const uniqueCategories = [...new Set(categories)];
+        const data = uniqueCategories.map(cat => {
+            return tasks.filter(t => t.category === cat).length;
+        });
+
+        pieChartInstance.data.labels = uniqueCategories;
+        pieChartInstance.data.datasets[0].data = data;
+        pieChartInstance.update();
+    }
+
+    // Roadmap feature
+    function addRoadmapItem(text) {
+        const item = document.createElement('li');
+        item.textContent = text;
+        roadmapList.appendChild(item);
+    }
+
+    // Performance Timer
+    let timerInterval;
+    let elapsedTime = 0;
+
+    function startTimer() {
+        timerInterval = setInterval(() => {
+            elapsedTime++;
+            const hours = String(Math.floor(elapsedTime / 3600)).padStart(2, '0');
+            const minutes = String(Math.floor((elapsedTime % 3600) / 60)).padStart(2, '0');
+            const seconds = String(elapsedTime % 60).padStart(2, '0');
+            timerDisplay.textContent = ${hours}:${minutes}:${seconds};
+        }, 1000);
+    }
+
+    function stopTimer() {
+        clearInterval(timerInterval);
+        elapsedTime = 0;
+        timerDisplay.textContent = '00:00:00';
+    }
+
+    // Subject Timer
+    let subjectTimerInterval;
+
+    function startSubjectTimer(subject) {
+        if (subjectTimerInterval) clearInterval(subjectTimerInterval);
+        subjectTimes[subject] = 0;
+        subjectTimerInterval = setInterval(() => {
+            subjectTimes[subject]++;
+            const hours = String(Math.floor(subjectTimes[subject] / 3600)).padStart(2, '0');
+            const minutes = String(Math.floor((subjectTimes[subject] % 3600) / 60)).padStart(2, '0');
+            const seconds = String(subjectTimes[subject] % 60).padStart(2, '0');
+            subjectTimer.textContent = ${hours}:${minutes}:${seconds};
+        }, 1000);
+    }
+
+    startTimerBtn.addEventListener('click', function () {
+        const selectedSubject = subjectSelect.value;
+        startSubjectTimer(selectedSubject);
+        updatePieChart();
+    });
+
+    // Dark Mode
+    toggleDarkModeBtn.addEventListener('click', function () {
+        darkMode = !darkMode;
+        document.body.classList.toggle('dark-mode', darkMode);
+    });
+
+    // Import/Export Tasks
+    importTasksBtn.addEventListener('click', function () {
+        // Implement import logic
+        alert('Import feature not implemented.');
+    });
+
+    exportTasksBtn.addEventListener('click', function () {
+        // Implement export logic
+        alert('Export feature not implemented.');
+    });
+
+    // Sync Calendar
+    syncCalendarBtn.addEventListener('click', function () {
+        // Implement calendar sync logic
+        alert('Sync with Calendar feature not implemented.');
+    });
+
+    // Send Notifications
+    sendNotificationsBtn.addEventListener('click', function () {
+        // Implement notifications logic
+        alert('Send Notifications feature not implemented.');
+    });
+});
+    </script>
+</body>
+</html>
